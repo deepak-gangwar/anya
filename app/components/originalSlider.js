@@ -18,16 +18,10 @@ export default class Slider {
     this.sliderInner = this.slider.querySelector('.js-slider__inner')
     this.slides = [...this.slider.querySelectorAll('.js-slide')]
     this.slidesNumb = this.slides.length
-
-    this.sliderHeight = 0
-
-    this.clonesHeight = 0
-    this.clones = []
-    this.scrollPos;
     
     this.rAF = undefined
     
-    // this.sliderWidth = 0
+    this.sliderWidth = 0
     
     this.onY = 0
     this.offY = 0
@@ -42,7 +36,7 @@ export default class Slider {
   }
   
   bind() {
-    ['setPos', 'update', 'on', 'off', 'resize'].forEach((fn) => this[fn] = this[fn].bind(this))
+    ['setPos', 'run', 'on', 'off', 'resize'].forEach((fn) => this[fn] = this[fn].bind(this))
   }
   
   setBounds() {
@@ -67,13 +61,16 @@ export default class Slider {
     this.currentY = Math.max(Math.min(this.currentY, this.min), this.max)
   }
   
-  update() {
+  run() {
     this.lastY = lerp(this.lastY, this.currentY, this.opts.ease)
     this.lastY = Math.floor(this.lastY * 100) / 100 
     
     const sd = this.currentY - this.lastY
     const acc = sd / window.innerHeight
     let velo =+ acc
+    
+    // let slideNumber = Math.ceil(Math.abs(this.lastY / this.slides[0].getBoundingClientRect().height)) + 1
+    // console.log(slideNumber)
     
     this.sliderInner.style.transform = `translate3d(0, ${this.lastY}px, 0)`
     
@@ -119,15 +116,15 @@ export default class Slider {
   }
 
   requestAnimationFrame() {
-    this.rAF = requestAnimationFrame(this.update)
+    this.rAF = requestAnimationFrame(this.run)
   }
 
   cancelAnimationFrame() {
     cancelAnimationFrame(this.rAF)
   }
   
-  addEventListeners() {
-    this.update()
+  addEvents() {
+    this.run()
     
     this.slider.addEventListener('mousemove', this.setPos, { passive: true })
     this.slider.addEventListener('mousedown', this.on, false)
@@ -136,7 +133,7 @@ export default class Slider {
     window.addEventListener('resize', this.resize, false)
   }
   
-  removeEventListeners() {
+  removeEvents() {
     this.cancelAnimationFrame(this.rAF)
     
     this.slider.removeEventListener('mousemove', this.setPos, { passive: true })
@@ -149,13 +146,24 @@ export default class Slider {
   }
   
   destroy() {
-    this.removeEventListeners()
+    this.removeEvents()
     
     this.opts = {}
   }
   
   init() {
     this.setBounds()
-    this.addEventListeners()
+    this.addEvents()
   }
 }
+
+// 170
+// 360
+// 550
+// 740
+// 913
+
+170
+190
+190
+190
