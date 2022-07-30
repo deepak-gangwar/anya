@@ -17,9 +17,10 @@ export default class Slider {
     this.slider = document.querySelector('.js-slider')
     this.sliderInner = this.slider.querySelector('.js-slider__inner')
     this.slides = [...this.slider.querySelectorAll('.js-slide')]
-    this.slidesNumb = this.slides.length
+    this.slidesNumb = 0
 
     this.sliderHeight = 0
+    this.originalSliderHeight = 0
 
     this.clonesHeight = 0
     this.clones = []
@@ -42,19 +43,28 @@ export default class Slider {
   }
   
   bind() {
-    ['setPos', 'update', 'on', 'off', 'resize'].forEach((fn) => this[fn] = this[fn].bind(this))
+    ['getPos', 'setPos', 'clone', 'update', 'on', 'off', 'resize']
+      .forEach((fn) => this[fn] = this[fn].bind(this))
   }
   
   setBounds() {
     const bounds = this.slides[0].getBoundingClientRect()
     const slideHeight = bounds.height
-
+    
+    this.clonesHeight = this.getClonesHeight()
+    
+    this.slidesNumb = this.slides.length
+    console.log(this.slidesNumb)
     this.sliderHeight = this.slidesNumb * slideHeight
     this.max = -(this.sliderHeight - window.innerHeight)
     
     this.slides.forEach((slide, index) => {
       slide.style.top = `${index * slideHeight}px`
     })
+  }
+
+  getPos() {
+    return this.sliderInner.getBoundingClientRect().top
   }
   
   setPos(e) {
@@ -66,7 +76,26 @@ export default class Slider {
   clamp() {
     this.currentY = Math.max(Math.min(this.currentY, this.min), this.max)
   }
-  
+
+  clone() {
+    this.slides.forEach(slide => {
+      let clone = slide.cloneNode(true)
+      clone.classList.add('clone')
+
+      this.sliderInner.appendChild(clone)
+      this.clones.push(clone)
+      this.slides.push(clone)
+    })
+  }
+
+  getClonesHeight() {
+    let height = 0
+    this.clones.forEach(clone => {
+      height += clone.offsetHeight
+    })
+    return height;
+  }
+
   update() {
     this.lastY = lerp(this.lastY, this.currentY, this.opts.ease)
     this.lastY = Math.floor(this.lastY * 100) / 100 
@@ -155,6 +184,7 @@ export default class Slider {
   }
   
   init() {
+    this.clone()
     this.setBounds()
     this.addEventListeners()
   }

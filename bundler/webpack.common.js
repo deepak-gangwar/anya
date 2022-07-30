@@ -48,7 +48,8 @@ module.exports = {
 
         new HtmlWebpackPlugin({
             template: path.join(__dirname, '../index.pug'),
-            minify: true
+            minify: true,
+            inject: false
         }),
 
         new CopyWebpackPlugin({
