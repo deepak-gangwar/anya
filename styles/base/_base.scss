@@ -1,20 +1,55 @@
 body, html{
   height: 100%;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 body{
   font-family: 'Canela';
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizelegibility;
   background-color: #0D0E13;
-  user-select: none;
+  color: #FFFFFF;
+}
+
+canvas {
+  height: 100vh;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
 img{
   display: block;
   width: 100%;
   height: auto;
+}
+
+.app {
+  height: 100%;
+}
+
+.app__wrapper {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cursor-wrapper{
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.cursor{
+  position: fixed;
+  top: -30px;
+  left: -30px;
 }

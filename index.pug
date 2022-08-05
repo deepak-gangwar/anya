@@ -5,6 +5,15 @@ html(lang="en")
         include ./views/partials/noscript
         
     body 
-        include ./views/partials/slider
+        main.app
+            .app__wrapper
+                .webgl__wrapper     
+                    canvas.webgl 
+                include ./views/partials/slider
+                .header
+                .cursor__wrapper    
+                    .cursor
+                .page-transition 
+                .preloader
 
         script(src="main.js") 

@@ -5,136 +5,108 @@ import { lerp } from "../utils/math"
 export default class Slider {
   constructor(options = {}) {
     this.bind()
-    
+
     this.opts = {
       el: options.el || '.js-slider',
       ease: options.ease || 0.1,
       speed: options.speed || 1.5,
-      velocity: 25,
-      scroll: options.scroll || false
     }
-    
+
+    // this can be added to this.ui object
     this.slider = document.querySelector('.js-slider')
     this.sliderInner = this.slider.querySelector('.js-slider__inner')
     this.slides = [...this.slider.querySelectorAll('.js-slide')]
-    this.slidesNumb = 0
+    this.slidesNumb = this.slides.length
 
-    this.sliderHeight = 0
-    this.originalSliderHeight = 0
-
-    this.clonesHeight = 0
-    this.clones = []
-    this.scrollPos;
-    
     this.rAF = undefined
-    
-    // this.sliderWidth = 0
-    
-    this.onY = 0
-    this.offY = 0
-    
-    this.currentY = 0
-    this.lastY = 0
-    
-    this.min = 0
-    this.max = 0
 
-    this.centerY = window.innerHeight / 2
+    this.state = {
+      isDragging: false,
+
+      sliderHeight: 0,
+
+      onY: 0,
+      offY: 0,
+
+      currentY: 0,
+      targetY: 0,
+
+      min: 0,
+      max: 0,
+
+      centerY: window.innerHeight / 2,
+    }
   }
-  
+
   bind() {
-    ['getPos', 'setPos', 'clone', 'update', 'on', 'off', 'resize']
+    ['onMove', 'update', 'on', 'off', 'resize']
       .forEach((fn) => this[fn] = this[fn].bind(this))
   }
-  
+
   setBounds() {
     const bounds = this.slides[0].getBoundingClientRect()
     const slideHeight = bounds.height
-    
-    this.clonesHeight = this.getClonesHeight()
-    
-    this.slidesNumb = this.slides.length
-    console.log(this.slidesNumb)
-    this.sliderHeight = this.slidesNumb * slideHeight
-    this.max = -(this.sliderHeight - window.innerHeight)
-    
+
+    const firstItem = this.slides[0]
+    firstItem.height = firstItem.getBoundingClientRect().height / 2
+
+    this.state.sliderHeight = this.slidesNumb * slideHeight
+    this.state.max = -(this.state.sliderHeight - window.innerHeight)
+
     this.slides.forEach((slide, index) => {
       slide.style.top = `${index * slideHeight}px`
     })
+
+    this.observe()
   }
 
-  getPos() {
-    return this.sliderInner.getBoundingClientRect().top
-  }
-  
-  setPos(e) {
-    if (!this.isDragging) return
-    this.currentY = this.offY + ((e.clientY - this.onY) * this.opts.speed)
+  onMove(e) {
+    if (!this.state.isDragging) return
+    this.state.currentY = this.state.offY + ((e.clientY - this.state.onY) * this.opts.speed)
     this.clamp()
   }
 
   clamp() {
-    this.currentY = Math.max(Math.min(this.currentY, this.min), this.max)
-  }
-
-  clone() {
-    this.slides.forEach(slide => {
-      let clone = slide.cloneNode(true)
-      clone.classList.add('clone')
-
-      this.sliderInner.appendChild(clone)
-      this.clones.push(clone)
-      this.slides.push(clone)
-    })
-  }
-
-  getClonesHeight() {
-    let height = 0
-    this.clones.forEach(clone => {
-      height += clone.offsetHeight
-    })
-    return height;
+    this.state.currentY = Math.max(Math.min(this.state.currentY, this.state.min), this.state.max)
   }
 
   update() {
-    this.lastY = lerp(this.lastY, this.currentY, this.opts.ease)
-    this.lastY = Math.floor(this.lastY * 100) / 100 
-    
-    const sd = this.currentY - this.lastY
-    const acc = sd / window.innerHeight
-    let velo =+ acc
-    
-    this.sliderInner.style.transform = `translate3d(0, ${this.lastY}px, 0)`
-    
+    this.state.targetY = lerp(this.state.targetY, this.state.currentY, this.opts.ease)
+    this.state.targetY = Math.floor(this.state.targetY * 100) / 100
+
+    // to add a skew effect as well, write the skew transfor here
+    this.sliderInner.style.transform = `translate3d(0, ${this.state.targetY}px, 0)`
+
     this.requestAnimationFrame()
   }
-  
+
   on(e) {
-    this.isDragging = true
-    this.onY = e.clientY
+    this.state.isDragging = true
+    this.state.onY = e.clientY
     this.slider.classList.add('is-grabbing')
   }
-  
+
   off(e) {
+    // to turn off snap, comment this.snap() here
     this.snap()
-    this.isDragging = false
-    this.offY = this.currentY
+    this.state.isDragging = false
+    this.state.offY = this.state.currentY
     this.slider.classList.remove('is-grabbing')
   }
-  
+
   closest() {
     const numbers = []
     this.slides.forEach((slide, index) => {
       const bounds = slide.getBoundingClientRect()
-      const diff = this.currentY - this.lastY
+      const diff = this.state.currentY - this.state.targetY
       const center = (bounds.y + diff) + (bounds.height / 2)
-      const fromCenter = this.centerY - center
+      const fromCenter = this.state.centerY - center
       numbers.push(fromCenter)
     })
 
     let closest = number(0, numbers)
     closest = numbers[closest]
-    
+
     return {
       closest
     }
@@ -142,9 +114,35 @@ export default class Slider {
 
   snap() {
     const { closest } = this.closest()
-    
-    this.currentY = this.currentY + closest
+
+    this.state.currentY = this.state.currentY + closest
     this.clamp()
+  }
+
+  observe() {
+    let ww = 30 - ((window.innerWidth / window.innerHeight) * 10)
+    console.log(ww)
+    let options = {
+      root: null,
+      rootMargin: `-${ww}% 0px -${ww}% 0px`,
+      threshold: 1.0
+    }
+
+    let observer = new IntersectionObserver(this.activeItem, options)
+
+    this.slides.forEach(slide => {
+      observer.observe(slide)
+    })
+  }
+
+  activeItem(entries) {
+    entries.forEach((entry) => {
+      if (entry.intersectionRatio == 1) {
+        entry.target.classList.add('is-active');
+      } else {
+        entry.target.classList.remove('is-active');
+      }
+    })
   }
 
   requestAnimationFrame() {
@@ -154,38 +152,39 @@ export default class Slider {
   cancelAnimationFrame() {
     cancelAnimationFrame(this.rAF)
   }
-  
+
   addEventListeners() {
     this.update()
-    
-    this.slider.addEventListener('mousemove', this.setPos, { passive: true })
+
+    this.slider.addEventListener('mousemove', this.onMove, { passive: true })
     this.slider.addEventListener('mousedown', this.on, false)
     this.slider.addEventListener('mouseup', this.off, false)
-    
+
     window.addEventListener('resize', this.resize, false)
   }
-  
+
   removeEventListeners() {
     this.cancelAnimationFrame(this.rAF)
-    
-    this.slider.removeEventListener('mousemove', this.setPos, { passive: true })
+
+    this.slider.removeEventListener('mousemove', this.onMove, { passive: true })
     this.slider.removeEventListener('mousedown', this.on, false)
     this.slider.removeEventListener('mouseup', this.off, false)
   }
-  
+
   resize() {
     this.setBounds()
   }
-  
+
   destroy() {
     this.removeEventListeners()
-    
+
     this.opts = {}
+    this.state = {}
   }
-  
+
   init() {
-    this.clone()
     this.setBounds()
+    this.snap()
     this.addEventListeners()
   }
 }
